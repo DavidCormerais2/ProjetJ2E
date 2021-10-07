@@ -3,7 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\Analyse;
+use App\Entity\Etudiant;
 use App\Entity\Patient;
+use App\Entity\Promo;
 use App\Entity\Truc;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -13,6 +15,7 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class TestController extends AbstractController
 {
+
     /**
      * @Route("/test", name="test")
      */
@@ -28,25 +31,48 @@ class TestController extends AbstractController
      * @Route "/demo"
      */
     public function demo(EntityManagerInterface $em){
-        $truc = $em->getRepository(Truc::class)->find(2);
-        $text = $truc->getBidule();
+        $promos = $em->getRepository(Promo::class)->findAll();
+        echo "<table><tr><td>Promo</td><td>Etudiants</td></tr>";
+        $this->creationEtudiants($em);
+        $this->modifEtudiants($em, "Pierre", "Pedro");
+        $this->modifEtudiants($em, "Alex", "Remi");
+        $this->supprEtudiants($em, "Remi");
+        foreach ($promos as $promo){
+            echo "<tr><td>";
+            print($promo->getIntitule());
+            echo "</td><td>";
+            $etudiants = $promo->getListeEtu();
+            foreach ($etudiants as $etudiant){
+                print($etudiant->getNom());
+            }
+            echo "</td></tr>";
+        }
+        echo "</table><br/>";
 
-        return new Response($text);
+        return new Response();
     }
-    public function remplissagePatient(){
-        $Analyse = new Analyse();
-        $Analyse->setType("GR")
-            ->setUnit("G/L");
-
-        $Patient = new Patient();
-            $Patient->setNom("Pedro")
-                ->setTypeAnalyse("NFS")
-                ->addResultatAnalyse($Analyse);
+    public function creationEtudiants(EntityManagerInterface $em){
+        $promo = $em->getRepository(Promo::class)->findOneBy(['Intitule' => 'M1']);
+        $promo2 = $em->getRepository(Promo::class)->findOneBy(['Intitule' => 'M2']);
+        $newEtu = new Etudiant();
+        $newEtu->setNom("Pierre")
+            ->setPromo($promo);
+        $newEtu2 = new Etudiant();
+        $newEtu2->setNom("Alex")
+            ->setPromo($promo2);
+        $em->persist($newEtu);
+        $em->persist($newEtu2);
+        $em->flush();
     }
-    #Consignes :
-    # Automate analyse échantillon de sang et envoie le résultat
-    # Création classes suivantes :
-    # Nom Patient
-    # Type d'analyse
-    # Résultats
+    public function modifEtudiants(EntityManagerInterface $em, String $nom, String $newNom){
+        $etu = $em->getRepository(Etudiant::class)->findOneBy(['Nom'=> $nom]);
+        $etu->setNom($newNom);
+        $em->persist($etu);
+        $em->flush();
+    }
+    public function supprEtudiants(EntityManagerInterface $em, String $nom){
+        $etu = $em->getRepository(Etudiant::class)->findOneBy(['Nom'=>$nom]);
+        $em->remove($etu);
+        $em->flush();
+    }
 }
